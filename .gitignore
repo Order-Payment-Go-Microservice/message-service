@@ -1,0 +1,24 @@
+# Binaries
+message-service
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Environments
+.env
+.env.*
+!.env.example
+
+# Dependencies
+vendor/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.docker/

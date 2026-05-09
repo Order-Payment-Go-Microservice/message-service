@@ -1,0 +1,38 @@
+services:
+  message-service:
+    build: .
+    ports:
+      - "9004:9004"
+      - "50051:50051"
+      - "9005:9005"
+    environment:
+      - DB_HOST=postgres-messages
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=messages_db
+      - NOTIFICATION_SERVICE_ADDR=notification-service:50052
+    depends_on:
+      - postgres-messages
+    networks:
+      - messenger-network
+
+  postgres-messages:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=messages_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - messages_db_data:/var/lib/postgresql/data
+    networks:
+      - messenger-network
+
+networks:
+  messenger-network:
+    external: true
+
+volumes:
+  messages_db_data:
