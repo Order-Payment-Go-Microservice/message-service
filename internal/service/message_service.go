@@ -1,8 +1,8 @@
 package service
 
 import (
-	"message-service/internal/model"
-	"message-service/internal/repository"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/model"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/repository"
 	"time"
 
 	"github.com/google/uuid"

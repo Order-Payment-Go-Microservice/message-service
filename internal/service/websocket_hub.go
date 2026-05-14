@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"log"
-	"message-service/internal/model"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/model"
 	"sync"
 
 	"github.com/gorilla/websocket"

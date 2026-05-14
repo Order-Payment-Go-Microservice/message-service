@@ -2,7 +2,7 @@ package handler
 
 import (
 	"log"
-	"message-service/internal/service"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"message-service/internal/config"
-	"message-service/internal/grpc"
-	"message-service/internal/handler"
-	"message-service/internal/repository"
-	"message-service/internal/service"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/config"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/grpc"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/handler"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/repository"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
 	"time"
 
 

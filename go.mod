@@ -1,4 +1,4 @@
-module message-service
+module github.com/Order-Payment-Go-Microservice/message-service
 
 go 1.23
 
@@ -9,7 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	google.golang.org/grpc v1.62.1
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.33.0 // indirect
 )
 
 require (

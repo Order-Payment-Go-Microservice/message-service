@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 	"log"
-	"message-service/internal/service"
-	pb "message-service/proto"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
+	pb "github.com/Order-Payment-Go-Microservice/message-service/proto"
 	"time"
 
 	"google.golang.org/grpc"

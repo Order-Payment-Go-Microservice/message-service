@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"message-service/internal/model"
-	"message-service/internal/service"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/model"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
 	"net/http"
 	"strconv"
 

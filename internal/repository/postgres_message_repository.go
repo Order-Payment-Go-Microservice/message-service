@@ -2,7 +2,7 @@ package repository
 
 import (
 	"database/sql"
-	"message-service/internal/model"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/model"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
