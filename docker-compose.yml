@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-messages:
     image: postgres:latest
@@ -39,7 +37,9 @@ services:
       - messenger-network
 
   message-service:
-    build: .
+    build:
+      context: ..
+      dockerfile: message-service/Dockerfile
     ports:
       - "9004:9004"
       - "50051:50051"
@@ -62,7 +62,9 @@ services:
       - messenger-network
 
   notification-service:
-    build: ../notification-service
+    build:
+      context: ..
+      dockerfile: notification-service/Dockerfile
     ports:
       - "9005:9005"
       - "50052:50052"
