@@ -1,38 +1,88 @@
+version: '3.8'
+
 services:
+  postgres-messages:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: messages_db
+    ports:
+      - "5433:5432"
+    networks:
+      - messenger-network
+
+  postgres-notifications:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notifications_db
+    ports:
+      - "5434:5432"
+    networks:
+      - messenger-network
+
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - messenger-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - messenger-network
+
   message-service:
     build: .
     ports:
       - "9004:9004"
       - "50051:50051"
-      - "9005:9005"
     environment:
       - DB_HOST=postgres-messages
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=messages_db
+      - NATS_URL=nats://nats:4222
+      - REDIS_URL=redis:6379
       - NOTIFICATION_SERVICE_ADDR=notification-service:50052
+    env_file:
+      - .env
     depends_on:
       - postgres-messages
+      - nats
+      - redis
     networks:
       - messenger-network
 
-  postgres-messages:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=messages_db
+  notification-service:
+    build: ../notification-service
     ports:
-      - "5433:5432"
-    volumes:
-      - messages_db_data:/var/lib/postgresql/data
+      - "9005:9005"
+      - "50052:50052"
+    environment:
+      - DB_HOST=postgres-notifications
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=notifications_db
+      - NATS_URL=nats://nats:4222
+      - REDIS_URL=redis:6379
+    env_file:
+      - ../notification-service/.env
+    depends_on:
+      - postgres-notifications
+      - nats
+      - redis
     networks:
       - messenger-network
 
 networks:
   messenger-network:
-    external: true
-
-volumes:
-  messages_db_data:
+    driver: bridge

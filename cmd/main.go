@@ -1,19 +1,25 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
+
 	"github.com/Order-Payment-Go-Microservice/message-service/internal/config"
-	"github.com/Order-Payment-Go-Microservice/message-service/internal/grpc"
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/database"
+	internalGrpc "github.com/Order-Payment-Go-Microservice/message-service/internal/grpc"
 	"github.com/Order-Payment-Go-Microservice/message-service/internal/handler"
 	"github.com/Order-Payment-Go-Microservice/message-service/internal/repository"
 	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
-	"time"
-
+	messagev1 "github.com/Order-Payment-Go-Microservice/proto-generation/gen/message/v1"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
+	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -21,79 +27,60 @@ func main() {
 
 	dbAddr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
-	
-	var db *sql.DB
-	var err error
-	for i := 0; i < 5; i++ {
-		db, err = sql.Open("postgres", dbAddr)
-		if err == nil {
-			err = db.Ping()
-			if err == nil {
-				break
-			}
-		}
-		log.Printf("Waiting for database... attempt %d/5", i+1)
-		time.Sleep(2 * time.Second)
-	}
 
+	db, err := sql.Open("postgres", dbAddr)
 	if err != nil {
-		log.Fatalf("Failed to connect to database after retries: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
-		id UUID PRIMARY KEY,
-		chat_id UUID NOT NULL,
-		sender_id UUID NOT NULL,
-		receiver_id UUID NOT NULL,
-		content TEXT NOT NULL,
-		message_type VARCHAR(20) DEFAULT 'text',
-		is_read BOOLEAN DEFAULT FALSE,
-		is_delivered BOOLEAN DEFAULT FALSE,
-		created_at TIMESTAMP DEFAULT NOW(),
-		updated_at TIMESTAMP DEFAULT NOW()
-	);`)
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	var nc *nats.Conn
+	nc, err = nats.Connect(cfg.NatsURL)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Printf("NATS connection failed: %v", err)
+	} else {
+		defer nc.Close()
+	}
+
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisURL})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Redis connection failed: %v", err)
 	}
 
 	repo := repository.NewPostgresMessageRepository(db)
 	hub := service.NewHub()
-	notificationClient := grpc.NewNotificationClient(cfg.NotificationServiceAddr)
-	messageService := service.NewMessageService(repo, notificationClient, hub)
+	notificationClient := internalGrpc.NewNotificationClient(cfg.NotificationServiceAddr)
+	messageService := service.NewMessageService(repo, notificationClient, hub, nc, rdb)
 
 	messageHandler := handler.NewMessageHandler(messageService)
 	wsHandler := handler.NewWebSocketHandler(hub)
 
-	router := gin.Default()
-
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
+	go func() {
+		lis, err := net.Listen("tcp", ":50051")
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
 		}
-		c.Next()
-	})
+		s := grpc.NewServer()
+		messagev1.RegisterMessageServiceServer(s, internalGrpc.NewMessageServer(messageService))
+		log.Println("gRPC Message Server starting on port 50051...")
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
 
+	router := gin.Default()
 	router.POST("/messages", messageHandler.SendMessage)
 	router.GET("/messages/:chatId", messageHandler.GetHistory)
-	router.POST("/messages/read/:id", messageHandler.MarkRead)
+	router.PATCH("/messages/:id/read", messageHandler.MarkRead)
 	router.GET("/ws", wsHandler.HandleConnections)
-
-	router.GET("/messages/message/:id", func(c *gin.Context) { c.JSON(200, gin.H{"message": "GET single message placeholder"}) })
-	router.PUT("/messages/:id", func(c *gin.Context) { c.JSON(200, gin.H{"message": "PUT message placeholder"}) })
-	router.DELETE("/messages/:id", func(c *gin.Context) { c.JSON(200, gin.H{"message": "DELETE message placeholder"}) })
-	router.POST("/messages/delivered/:id", func(c *gin.Context) { c.JSON(200, gin.H{"message": "POST delivered placeholder"}) })
-	router.GET("/messages/search", func(c *gin.Context) { c.JSON(200, gin.H{"message": "GET search placeholder"}) })
-	router.POST("/messages/reply", func(c *gin.Context) { c.JSON(200, gin.H{"message": "POST reply placeholder"}) })
-	router.POST("/messages/forward", func(c *gin.Context) { c.JSON(200, gin.H{"message": "POST forward placeholder"}) })
-	router.POST("/messages/react", func(c *gin.Context) { c.JSON(200, gin.H{"message": "POST react placeholder"}) })
-	router.GET("/messages/pinned", func(c *gin.Context) { c.JSON(200, gin.H{"message": "GET pinned placeholder"}) })
 
 	log.Printf("Message Service starting on port %s...", cfg.Port)
 	if err := router.Run(":" + cfg.Port); err != nil {

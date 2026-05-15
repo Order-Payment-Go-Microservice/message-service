@@ -3,9 +3,10 @@ package grpc
 import (
 	"context"
 	"log"
-	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
-	pb "github.com/Order-Payment-Go-Microservice/message-service/proto"
 	"time"
+
+	"github.com/Order-Payment-Go-Microservice/message-service/internal/service"
+	notificationv1 "github.com/Order-Payment-Go-Microservice/proto-generation/gen/notification/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,22 +21,23 @@ func NewNotificationClient(addr string) service.NotificationClient {
 }
 
 func (c *notificationClient) SendPushNotification(recipientID, content string) error {
-	conn, err := grpc.Dial(c.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(c.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("[gRPC Client] Failed to connect: %v", err)
 		return err
 	}
 	defer conn.Close()
 
-	client := pb.NewNotificationServiceClient(conn)
-	
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	client := notificationv1.NewNotificationServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = client.SendNotification(ctx, &pb.NotificationRequest{
+	_, err = client.SendNotification(ctx, &notificationv1.NotificationRequest{
 		UserId:  recipientID,
 		Title:   "Новое сообщение",
 		Message: content,
+		Type:    "push",
 	})
 
 	if err != nil {
