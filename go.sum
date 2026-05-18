@@ -1,3 +1,5 @@
+github.com/Order-Payment-Go-Microservice/proto-generation v0.0.0-20260515204901-1920714a887d h1:SrAVBc0M8XnwwejQALOsfjUttw7SGqxjdE8Uu1gBCbo=
+github.com/Order-Payment-Go-Microservice/proto-generation v0.0.0-20260515204901-1920714a887d/go.mod h1:AY7nUT3n6ksNYRyJMdHfSapMkh8D0jF0HErWqA1cFMk=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=

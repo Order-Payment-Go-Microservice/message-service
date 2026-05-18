@@ -64,13 +64,13 @@ func main() {
 	wsHandler := handler.NewWebSocketHandler(hub)
 
 	go func() {
-		lis, err := net.Listen("tcp", ":50051")
+		lis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
 		s := grpc.NewServer()
 		messagev1.RegisterMessageServiceServer(s, internalGrpc.NewMessageServer(messageService))
-		log.Println("gRPC Message Server starting on port 50051...")
+		log.Printf("gRPC Message Server starting on port %s...", cfg.GRPCPort)
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
